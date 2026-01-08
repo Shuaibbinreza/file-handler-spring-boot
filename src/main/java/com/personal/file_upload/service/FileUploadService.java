@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -22,6 +23,10 @@ public class FileUploadService {
 
     public FileUploadService(FileUploadRepository repository) {
         this.repository = repository;
+    }
+
+    public List<FileEntity> getAllFiles() {
+        return repository.findAll();
     }
 
     public FileEntity uploadFile(MultipartFile file) throws IOException {
