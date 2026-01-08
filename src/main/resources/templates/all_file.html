@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>File Upload</title>
+</head>
+
+<body>
+
+    <h2>Upload File</h2>
+
+    <form method="post" enctype="multipart/form-data" th:action="@{/api/files/upload}">
+        <input type="file" name="file" />
+        <button type="submit">Upload</button>
+    </form>
+
+    <p th:text="${msg}"></p>
+
+    <hr />
+
+    <h2>Uploaded Files</h2>
+
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Original Name</th>
+            <th>Uploaded At</th>
+            <th>Action</th>
+        </tr>
+
+        <tr th:each="file : ${files}">
+            <td th:text="${file.id}"></td>
+            <td th:text="${file.originalName}"></td>
+            <td th:text="${file.uploadedAt}"></td>
+            <td>
+                <a th:href="@{'/api/files/download/' + ${file.id}}">
+                    Download
+                </a>
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

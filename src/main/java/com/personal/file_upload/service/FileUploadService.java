@@ -58,4 +58,8 @@ public class FileUploadService {
 
         return repository.save(uploadedFile);
     }
+
+    public FileEntity getFileById(Long id) {
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("File not found with id: " + id));
+    }
 }
