@@ -4,42 +4,82 @@
 <head>
     <meta charset="UTF-8">
     <title>File Upload</title>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 
 <body>
 
     <h2>Upload File</h2>
 
-    <form method="post" enctype="multipart/form-data" th:action="@{/api/files/upload}">
-        <input type="file" name="file" />
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" id="fileInput" />
         <button type="submit">Upload</button>
     </form>
 
-    <p th:text="${msg}"></p>
+    <p id="msg"></p>
 
     <hr />
 
     <h2>Uploaded Files</h2>
 
     <table border="1">
-        <tr>
-            <th>ID</th>
-            <th>Original Name</th>
-            <th>Uploaded At</th>
-            <th>Action</th>
-        </tr>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Original Name</th>
+                <th>Uploaded At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
 
-        <tr th:each="file : ${files}">
-            <td th:text="${file.id}"></td>
-            <td th:text="${file.originalName}"></td>
-            <td th:text="${file.uploadedAt}"></td>
-            <td>
-                <a th:href="@{'/api/files/download/' + ${file.id}}">
-                    Download
-                </a>
-            </td>
-        </tr>
+        <tbody id="fileTableBody">
+            <tr th:each="file : ${files}">
+                <td th:text="${file.id}"></td>
+                <td th:text="${file.originalName}"></td>
+                <td th:text="${file.uploadedAt}"></td>
+                <td>
+                    <a th:href="@{'/api/files/download/' + ${file.id}}">Download</a>
+                </td>
+            </tr>
+        </tbody>
     </table>
+
+    <script>
+        $(document).ready(function () {
+
+            $("#uploadForm").on("submit", function (e) {
+                e.preventDefault();
+
+                let fileInput = $("#fileInput")[0];
+                if (!fileInput.files.length) {
+                    alert("Please select a file");
+                    return;
+                }
+
+                let formData = new FormData(this);
+
+                $.ajax({
+                    url: "/api/files/upload",  // REST endpoint
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (data) {
+                        // Show success message (optional)
+                        $("#msg").text("File uploaded successfully: " + data.originalName);
+
+                        // Reload page to refresh table
+                        window.location.reload();
+                    },
+                    error: function () {
+                        $("#msg").text("Upload failed!");
+                    }
+                });
+            });
+
+        });
+    </script>
 
 </body>
 
