@@ -62,4 +62,27 @@ public class FileUploadService {
     public FileEntity getFileById(Long id) {
         return repository.findById(id).orElseThrow(() -> new RuntimeException("File not found with id: " + id));
     }
+
+    public void deleteFileById(Long id) {
+        FileEntity file = getFileById(id); // throws exception if not found
+
+        try {
+            // Delete from disk
+            Path filePath = Paths.get(uploadDir)
+                    .resolve(file.getStoredName())
+                    .normalize();
+            Files.deleteIfExists(filePath);
+
+            // Delete from DB
+            repository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete file: " + e.getMessage(), e);
+        }
+    }
+
+    // Add getter for uploadDir (used in controller)
+    public String getUploadDir() {
+        return uploadDir;
+    }
+
 }

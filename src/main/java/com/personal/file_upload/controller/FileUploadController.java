@@ -13,8 +13,10 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/files")
@@ -29,6 +31,16 @@ public class FileUploadController {
     public FileUploadController(FileUploadService fileService) {
         // this.repository = repository;
         this.fileService = fileService;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<FileEntity>> getAllFiles() {
+        try {
+            List<FileEntity> files = fileService.getAllFiles();
+            return ResponseEntity.ok(files);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @PostMapping("/upload")
@@ -69,6 +81,16 @@ public class FileUploadController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteFile(@PathVariable Long id) {
+        try {
+            fileService.deleteFileById(id);
+            return ResponseEntity.ok("File deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Delete failed: " + e.getMessage());
         }
     }
 }
