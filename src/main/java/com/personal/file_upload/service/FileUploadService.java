@@ -91,8 +91,18 @@ public class FileUploadService {
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(uploadPath);
 
-        // Write chunk to temporary file
+        // Check if chunk already exists (for resume scenario)
         Path chunkFile = uploadPath.resolve(progress.getStoredName() + ".chunk" + chunkIndex);
+        if (Files.exists(chunkFile)) {
+            // Chunk already exists, just update progress tracking if not already tracked
+            if (!progress.getChunks().containsKey(chunkIndex)) {
+                progress.addChunk(chunkIndex, chunkData.length);
+                progress.setUploadedBytes(progress.getUploadedBytes() + chunkData.length);
+            }
+            return;
+        }
+
+        // Write chunk to temporary file
         Files.write(chunkFile, chunkData);
 
         progress.addChunk(chunkIndex, chunkData.length);
@@ -142,6 +152,82 @@ public class FileUploadService {
             return 0;
         }
         return (double) progress.getUploadedBytes() / progress.getTotalSize() * 100;
+    }
+
+    // Pause an ongoing upload
+    public boolean pauseUpload(String uploadId) {
+        UploadProgress progress = uploadProgressMap.get(uploadId);
+        if (progress == null) {
+            return false;
+        }
+        progress.setStatus("paused");
+        return true;
+    }
+
+    // Resume a paused upload
+    public boolean resumeUpload(String uploadId) {
+        UploadProgress progress = uploadProgressMap.get(uploadId);
+        if (progress == null) {
+            return false;
+        }
+        if (!"paused".equals(progress.getStatus())) {
+            return false;
+        }
+        
+        // Recalculate uploaded bytes based on existing chunks
+        try {
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            long uploadedBytes = 0;
+            int chunkIndex = 0;
+            while (true) {
+                Path chunkFile = uploadPath.resolve(progress.getStoredName() + ".chunk" + chunkIndex);
+                if (Files.exists(chunkFile)) {
+                    uploadedBytes += Files.size(chunkFile);
+                    progress.addChunk(chunkIndex, (int) Files.size(chunkFile));
+                    chunkIndex++;
+                } else {
+                    break;
+                }
+            }
+            progress.setUploadedBytes(uploadedBytes);
+        } catch (IOException e) {
+            // Ignore errors, use existing progress
+        }
+        
+        progress.setStatus("in_progress");
+        return true;
+    }
+
+    // Get upload status
+    public String getUploadStatus(String uploadId) {
+        UploadProgress progress = uploadProgressMap.get(uploadId);
+        if (progress == null) {
+            return "not_found";
+        }
+        return progress.getStatus();
+    }
+
+    // Cancel an upload
+    public boolean cancelUpload(String uploadId) {
+        UploadProgress progress = uploadProgressMap.get(uploadId);
+        if (progress == null) {
+            return false;
+        }
+
+        try {
+            // Delete all chunk files
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            int totalChunks = progress.getChunks().size();
+            for (int i = 0; i < totalChunks; i++) {
+                Path chunkFile = uploadPath.resolve(progress.getStoredName() + ".chunk" + i);
+                Files.deleteIfExists(chunkFile);
+            }
+        } catch (IOException e) {
+            // Ignore cleanup errors
+        }
+
+        uploadProgressMap.remove(uploadId);
+        return true;
     }
 
     public FileEntity getFileById(Long id) {

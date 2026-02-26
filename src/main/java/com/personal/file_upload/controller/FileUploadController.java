@@ -100,6 +100,15 @@ public class FileUploadController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            // Check if it's because chunk already exists
+            if (e.getMessage() != null && e.getMessage().contains("already exists")) {
+                double progress = fileService.getUploadProgress(uploadId);
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "chunk_exists");
+                response.put("chunkIndex", chunkIndex);
+                response.put("progress", progress);
+                return ResponseEntity.ok(response);
+            }
             Map<String, Object> error = new HashMap<>();
             error.put("status", "error");
             error.put("message", e.getMessage());
@@ -126,14 +135,88 @@ public class FileUploadController {
     public ResponseEntity<Map<String, Object>> getUploadProgress(@PathVariable String uploadId) {
         try {
             double progress = fileService.getUploadProgress(uploadId);
+            String status = fileService.getUploadStatus(uploadId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("uploadId", uploadId);
             response.put("progress", progress);
+            response.put("status", status);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Pause an ongoing upload
+    @PostMapping("/chunked/pause/{uploadId}")
+    public ResponseEntity<Map<String, Object>> pauseUpload(@PathVariable String uploadId) {
+        try {
+            boolean success = fileService.pauseUpload(uploadId);
+            
+            Map<String, Object> response = new HashMap<>();
+            if (success) {
+                response.put("status", "success");
+                response.put("message", "Upload paused");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Upload not found or already completed");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    // Resume a paused upload
+    @PostMapping("/chunked/resume/{uploadId}")
+    public ResponseEntity<Map<String, Object>> resumeUpload(@PathVariable String uploadId) {
+        try {
+            boolean success = fileService.resumeUpload(uploadId);
+            
+            Map<String, Object> response = new HashMap<>();
+            if (success) {
+                response.put("status", "success");
+                response.put("message", "Upload resumed");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Upload not found or not paused");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    // Cancel an upload
+    @PostMapping("/chunked/cancel/{uploadId}")
+    public ResponseEntity<Map<String, Object>> cancelUpload(@PathVariable String uploadId) {
+        try {
+            boolean success = fileService.cancelUpload(uploadId);
+            
+            Map<String, Object> response = new HashMap<>();
+            if (success) {
+                response.put("status", "success");
+                response.put("message", "Upload cancelled");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Upload not found");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
 
